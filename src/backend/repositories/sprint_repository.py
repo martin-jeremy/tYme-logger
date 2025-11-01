@@ -90,10 +90,20 @@ class SprintRepository:
             ) for r in results
         ]
 
-    def create_sprint(self, tfs_number: int, code: str, starting_date: date, ending_date: date):
+    def create_sprint(self, tfs_number: str, code: str, starting_date: date, ending_date: date) -> Sprint:
         conn = get_connection()
         conn.execute("""
         INSERT INTO Sprints (tfs_number, code, starting_date, ending_date)
             VALUES (?, ?, ?, ?)
         """, (tfs_number, code, starting_date, ending_date))
+
+        id = conn.execute("SELECT id FROM sprints where tfs_number = ?", (tfs_number,)).fetchone()[0]
         conn.close()
+
+        return Sprint(
+            id=id,
+            tfs_number=tfs_number,
+            code=code,
+            starting_date=starting_date,
+            ending_date=ending_date
+        )
