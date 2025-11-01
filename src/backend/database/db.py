@@ -74,12 +74,21 @@ def init_db():
                      """)
 
         conn.commit()
-        print("✓ Schema created successfully")
+        print("✓ Database created successfully")
     else:
-        print(f"Database already exists at {DB_PATH}")
+        print(f"Using existing DB at {DB_PATH}")
 
     conn.close()
 
 
+def get_connection():
+    """Get a connection to the database. Initializes it if needed."""
+    try:
+        duckdb.connect(str(DB_PATH)).close()
+    except duckdb.DatabaseError:
+        print("Database not found, initializing new database")
+        init_db()
+    return duckdb.connect(str(DB_PATH))
+
 if __name__ == "__main__":
-    init_db()
+    get_connection()
