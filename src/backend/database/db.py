@@ -1,3 +1,5 @@
+import os
+
 import duckdb
 from pathlib import Path
 
@@ -23,13 +25,59 @@ def init_db():
         print(f"Creating schema in {DB_PATH}")
 
         # Create sequences first
+        conn.execute("CREATE SEQUENCE seq_activity_id START 1")
+        conn.execute("CREATE SEQUENCE seq_project_id START 1")
         conn.execute("CREATE SEQUENCE seq_sprint_id START 1")
         conn.execute("CREATE SEQUENCE seq_task_id START 1")
         conn.execute("CREATE SEQUENCE seq_log_id START 1")
 
+        # Activities table
+        conn.execute("""
+                     CREATE TABLE Activities
+                     (
+                         id             INTEGER PRIMARY KEY DEFAULT nextval('seq_activity_id'),
+                         value          VARCHAR NOT NULL UNIQUE
+                     )
+                     """)
+        conn.execute("""
+                     INSERT INTO Activities (value) VALUES 
+                         ('Déploiement'),
+                         ('Design'),
+                         ('Développement'),
+                         ('Documentation'),
+                         ('Etude'),
+                         ('Exigence'),
+                         ('Suivi de projet'),
+                         ('Test en cours'),
+                         ('Transverse')
+                     """)
+
+        # Projects table
+        conn.execute("""
+                     CREATE TABLE Projects
+                     (
+                         id    INTEGER PRIMARY KEY DEFAULT nextval('seq_project_id'),
+                         value VARCHAR NOT NULL UNIQUE
+                     )
+                     """)
+        conn.execute("""
+                     INSERT INTO Projects (value)
+                     VALUES ('Lab Composer (corelab)'),
+                            ('Lab Composer - ProteinHub (TBS)'),
+                            ('Lab Composer - TDMind (TechniData)'),
+                            ('Lab Composer - ResultManager (Quidel Ortho)'),
+                            ('EVM'),
+                            ('Infection Tracker'),
+                            ('sthemE - v1'),
+                            ('sthemE - v2'),
+                            ('DMV'),
+                            ('Ylink'),
+                            ('Outil interne')
+                     """)
+
         # Sprint table
         conn.execute("""
-                     CREATE TABLE Sprint
+                     CREATE TABLE Sprints
                      (
                          id            INTEGER PRIMARY KEY DEFAULT nextval('seq_sprint_id'),
                          tfs_number    VARCHAR NOT NULL UNIQUE,
@@ -41,26 +89,28 @@ def init_db():
 
         # Task table
         conn.execute("""
-                     CREATE TABLE Task
+                     CREATE TABLE Tasks
                      (
                          id             INTEGER PRIMARY KEY DEFAULT nextval('seq_task_id'),
                          tfs_number     VARCHAR NOT NULL,
                          sprint_id      INTEGER NOT NULL,
-                         project        VARCHAR NOT NULL,
-                         activity       VARCHAR NOT NULL,
+                         project_id     INTEGER,
+                         activity_id    INTEGER,
                          status         VARCHAR NOT NULL,
                          assigned_to    VARCHAR,
                          estimated_time DOUBLE  NOT NULL,
                          resting_time   DOUBLE  NOT NULL,
                          done_time      DOUBLE  NOT NULL    DEFAULT 0,
-                         FOREIGN KEY (sprint_id) REFERENCES Sprint (id),
+                         FOREIGN KEY (sprint_id) REFERENCES Sprints (id),
+                         FOREIGN KEY (activity_id) REFERENCES Activities (id),
+                         FOREIGN KEY (project_id) REFERENCES Projects (id),
                          UNIQUE (tfs_number, sprint_id)
                      )
                      """)
 
         # Log table
         conn.execute("""
-                     CREATE TABLE Log
+                     CREATE TABLE Logs
                      (
                          id          INTEGER PRIMARY KEY DEFAULT nextval('seq_log_id'),
                          task_id     INTEGER NOT NULL,
@@ -68,16 +118,13 @@ def init_db():
                          log_date    DATE    NOT NULL,
                          logged_time DOUBLE  NOT NULL,
                          notes       VARCHAR,
-                         source      VARCHAR NOT NULL CHECK (source IN ('imported', 'manual')),
-                         FOREIGN KEY (task_id) REFERENCES Task (id)
+                         FOREIGN KEY (task_id) REFERENCES Tasks (id)
                      )
                      """)
-
         conn.commit()
         print("✓ Database created successfully")
     else:
         print(f"Using existing DB at {DB_PATH}")
-
     conn.close()
 
 
@@ -90,5 +137,19 @@ def get_connection():
         init_db()
     return duckdb.connect(str(DB_PATH))
 
+
+def delete_database():
+    """Delete database if needed."""
+    try:
+        os.remove(str(DB_PATH))
+        print("Database deleted successfully.")
+    except FileNotFoundError:
+        print("Database file not found.")
+    except PermissionError:
+        print("Database still in use. Please, close connection and retry.")
+
 if __name__ == "__main__":
-    get_connection()
+    init_db()
+    conn = get_connection()
+    conn.close()
+    delete_database()
