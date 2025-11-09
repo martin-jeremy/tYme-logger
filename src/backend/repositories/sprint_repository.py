@@ -92,18 +92,40 @@ class SprintRepository:
 
     def create_sprint(self, tfs_number: str, code: str, starting_date: date, ending_date: date) -> Sprint:
         conn = get_connection()
-        conn.execute("""
-        INSERT INTO Sprints (tfs_number, code, starting_date, ending_date)
-            VALUES (?, ?, ?, ?)
-        """, (tfs_number, code, starting_date, ending_date))
+        try:
+            conn.execute("""
+            INSERT INTO Sprints (tfs_number, code, starting_date, ending_date)
+                VALUES (?, ?, ?, ?)
+            """, (tfs_number, code, starting_date, ending_date))
+        except Exception as e:
+            print(e)
+            return None
 
-        id = conn.execute("SELECT id FROM sprints where tfs_number = ?", (tfs_number,)).fetchone()[0]
+        _id = conn.execute("SELECT id FROM sprints where tfs_number = ?", (tfs_number,)).fetchone()[0]
         conn.close()
 
         return Sprint(
-            id=id,
+            id=_id,
             tfs_number=tfs_number,
             code=code,
             starting_date=starting_date,
             ending_date=ending_date
         )
+
+if __name__ == "__main__":
+    repo = SprintRepository()
+    repo.create_sprint("0001",
+                       "test",
+                       date(2023, 1, 1),
+                       date(2023, 1, 10)
+                       )
+    repo.create_sprint("0002",
+                       "test_2",
+                       date(2023, 1, 11),
+                       date(2023, 1, 20)
+                       )
+    repo.create_sprint("0003",
+                       "test_3",
+                       date(2023, 1, 21),
+                       date(2023, 1, 30)
+                       )

@@ -93,6 +93,7 @@ def init_db():
                      (
                          id             INTEGER PRIMARY KEY DEFAULT nextval('seq_task_id'),
                          tfs_number     VARCHAR NOT NULL,
+                         description    VARCHAR NOT NULL, 
                          sprint_id      INTEGER NOT NULL,
                          project_id     INTEGER,
                          activity_id    INTEGER,
@@ -144,9 +145,9 @@ def delete_database():
         os.remove(str(DB_PATH))
         print("Database deleted successfully.")
     except FileNotFoundError:
-        print("Database file not found.")
+        raise IOError(f"Database file not found")
     except PermissionError:
-        print("Database still in use. Please, close connection and retry.")
+        raise PermissionError("Database still in use. Please, close connection and retry.")
 
 if __name__ == "__main__":
     init_db()
